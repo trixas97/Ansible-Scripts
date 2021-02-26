@@ -1,0 +1,75 @@
+# Call with ansible-playbook -e "ip_addr={VPN ip address for this device(i.e. 10.10.10.1/24)} interface={interface for vpn(i.e. eth0)}" wireguard.yml
+---
+- name: Install Wireguard
+  hosts: localhost
+  become: true
+  connection: local
+  tasks:
+    - name: Update apt repo and cache on all Debian/Ubuntu boxes
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages on servers
+      apt:
+        upgrade: dist
+        force_apt_get: yes
+
+    - name: Update repositories cache and install "wireguard" package
+      apt:
+        name: wireguard
+        update_cache: yes
+
+    - name: Uncomment IPv4 forward
+      replace:
+        path: /etc/sysctl.conf
+        regexp: "#net.ipv4.ip_forward=1"
+        replace: "net.ipv4.ip_forward=1"
+
+    - name: Generate Keys
+      shell: |
+        sysctl -p
+        cd /etc/wireguard
+        umask 077
+        wg genkey | tee privatekey | wg pubkey > publickey
+
+    - name: Save Public Key
+      shell: cat publickey
+      register: publickey
+
+    - name: Save Private Key
+      shell: cat privatekey
+      register: privatekey
+
+    - name: Print Keys
+      debug:
+        msg:
+          - "Public Key: {{ publickey.stdout }}"
+          - "Private Key: {{ privatekey.stdout }}"
+
+    - name: Create wg0.conf
+      file:
+        path: "/etc/wireguard/wg0.conf"
+        state: touch
+
+    - name: Initialize wg0.conf
+      copy:
+        dest: "/etc/wireguard/wg0.conf"
+        content: |
+          [Interface]
+          PrivateKey = {{ privatekey.stdout }}
+          Address = {{ ip_addr }}
+          PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o {{ interface }} -j MASQUERADE
+          PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o {{ interface }} -j MASQUERADE
+          ListenPort = 51820
+
+    - name: Enable Wireguard (wg0.conf)
+      shell: |
+        wg-quick up wg0
+        wg show
+      register: wg
+
+    - name: Print Wireguard (wg0.conf) status
+      debug:
+        msg: "{{ wg.stdout }}"
