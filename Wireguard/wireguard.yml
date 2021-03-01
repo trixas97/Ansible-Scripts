@@ -1,6 +1,6 @@
 # Call with ansible-playbook -e "ip_addr={VPN ip address for this device(i.e. 10.10.10.1/24)} interface={interface for vpn(i.e. eth0)}" wireguard.yml
 ---
-- name: Install Wireguard
+- name: Install or Update Wireguard and packages
   hosts: localhost
   become: true
   connection: local
@@ -21,6 +21,56 @@
         name: wireguard
         update_cache: yes
 
+    - name: Install or update pip
+      apt:
+        name: python3-pip
+        update_cache: yes
+
+    - name: Install or update netaddr
+      pip:
+        name: netaddr
+
+
+
+- name: Initialize Wireguard (Ip Pool)
+  hosts: localhost
+  become: true
+  connection: local
+  vars:
+    size:
+    ipflag:
+  tasks:
+    - name: Find network size
+      set_fact:
+        size: "{{ ip_addr | ipaddr('size') - 1 | int }}"
+
+    - name: Find all addresses
+      loop: "{{ range(1,size | int,1) | list }}"
+      set_fact:
+        ipflag: "{{ ipflag }}{{ ip_addr | ipaddr(item) }}\n"
+
+    - name: Create file pool
+      file:
+        path: "/etc/wireguard/pool"
+        state: touch
+
+    - name: Save addresses to pool
+      copy:
+        dest: "/etc/wireguard/pool"
+        content: "{{ ipflag }}"
+
+    - name: Comment Wireguard Server Ip
+      replace:
+        path: /etc/wireguard/pool
+        regexp: "{{ ip_addr }}"
+        replace: "#{{ ip_addr }} Server Ip"
+
+
+- name: Initialize Wireguard
+  hosts: localhost
+  become: true
+  connection: local
+  tasks:
     - name: Uncomment IPv4 forward
       replace:
         path: /etc/sysctl.conf
@@ -35,11 +85,11 @@
         wg genkey | tee privatekey | wg pubkey > publickey
 
     - name: Save Public Key
-      shell: cat publickey
+      shell: "cat /etc/wireguard/publickey"
       register: publickey
 
     - name: Save Private Key
-      shell: cat privatekey
+      shell: "cat /etc/wireguard/privatekey"
       register: privatekey
 
     - name: Print Keys
@@ -47,6 +97,14 @@
         msg:
           - "Public Key: {{ publickey.stdout }}"
           - "Private Key: {{ privatekey.stdout }}"
+
+    - name: Create peers folders
+      file:
+        path: /etc/wireguard/peers/keys
+        state: directory
+#      shell: |
+#        mkdir /etc/wireguard/peers
+#        mkdir /etc/wireguard/peers/keys
 
     - name: Create wg0.conf
       file:
@@ -73,3 +131,4 @@
     - name: Print Wireguard (wg0.conf) status
       debug:
         msg: "{{ wg.stdout }}"
+...
