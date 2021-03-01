@@ -1,4 +1,4 @@
-#Call with ansible-playbook -e "user={peer username (i.e. mixalis)} interface={interface for vpn(i.e. eth0)}" wireguard-peer.yml
+ #Call with ansible-playbook -e "user={peer username (i.e. mixalis)} interface={interface for vpn(i.e. eth0)}" wireguard-peer.yml
 ---
 - name: Add Peer
   hosts: localhost
@@ -40,8 +40,12 @@
           PublicKey = {{ publickey.stdout }}
           AllowedIPs = {{ ipaddress.stdout | ipv4('address') }}/32
 
+    - name: Find Server Wireguard Interface
+      shell: cat /etc/wireguard/wg0.conf | grep "#Interface" | cut -d '=' -f2 | sed 's/ //'
+      register: interface
+
     - name: Find Server Wireguard Ip
-      shell: ifconfig | grep -A 1 '{{interface}}' | tail -1 | tr -s ' ' | sed 's/ //' | cut -d ' ' -f2
+      shell: ifconfig | grep -A 1 '{{interface.stdout}}' | tail -1 | tr -s ' ' | sed 's/ //' | cut -d ' ' -f2
       register: serverip
 
     - name: Find Server Wireguard Public Key

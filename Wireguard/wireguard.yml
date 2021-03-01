@@ -112,6 +112,7 @@
           [Interface]
           PrivateKey = {{ privatekey.stdout }}
           Address = {{ ip_addr }}
+          #Interface = {{ interface }}
           PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o {{ interface }} -j MASQUERADE
           PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o {{ interface }} -j MASQUERADE
           ListenPort = 51820
