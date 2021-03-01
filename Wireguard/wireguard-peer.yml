@@ -1,31 +1,73 @@
-#Call with ansible-playbook -e "ip_addr={Peer VPN ip address (i.e. 10.10.10.2/32)} public_key={Peer public key}" wireguard-peer.yml
+#Call with ansible-playbook -e "user={peer username (i.e. mixalis)} interface={interface for vpn(i.e. eth0)}" wireguard-peer.yml
 ---
 - name: Add Peer
   hosts: localhost
   become: true
   connection: local
   tasks:
+    - name: Generate Keys
+      shell: |
+        sysctl -p
+        cd /etc/wireguard/peers/keys/
+        umask 077
+        wg genkey | tee {{ user }}-privatekey | wg pubkey > {{ user }}-publickey
+
+    - name: Save Public Key
+      shell: "cat /etc/wireguard/peers/keys/{{ user }}-publickey"
+      register: publickey
+
+    - name: Save Private Key
+      shell: "cat /etc/wireguard/peers/keys/{{ user }}-privatekey"
+      register: privatekey
+
+    - name: Find Ip address for new peer
+      shell: cat /etc/wireguard/pool | grep -v "#" | head -1
+      register: ipaddress
+
+    - name: Comment Peer({{ user }}) Ip
+      replace:
+        path: /etc/wireguard/pool
+        regexp: "{{ ipaddress.stdout }}"
+        replace: "#{{ ipaddress.stdout }} {{ user }}"
+
     - name: Adding peer to wg0.conf
       lineinfile:
         path: /etc/wireguard/wg0.conf
         line: |
 
+          #{{ user }}
           [Peer]
-          PublicKey = {{ public_key }}
-          AllowedIPs = {{ ip_addr }}
+          PublicKey = {{ publickey.stdout }}
+          AllowedIPs = {{ ipaddress.stdout | ipv4('address') }}/32
+
+    - name: Find Server Wireguard Ip
+      shell: ifconfig | grep -A 1 '{{interface}}' | tail -1 | tr -s ' ' | sed 's/ //' | cut -d ' ' -f2
+      register: serverip
+
+    - name: Find Server Wireguard Public Key
+      shell: cat /etc/wireguard/publickey
+      register: serverpublic
+
+    - name: Create {{ user }}.conf
+      file:
+        path: "/etc/wireguard/peers/{{user}}.conf"
+        state: touch
+
+    - name: Initialize {{ user }}.conf
+      copy:
+        dest: "/etc/wireguard/peers/{{user}}.conf"
+        content: |
+          [Interface]
+          PrivateKey = {{ privatekey.stdout }}
+          Address = {{ ipaddress.stdout }}          
+
+          [Peer]
+          PublicKey = {{ serverpublic.stdout }}
+          AllowedIPs = 0.0.0.0/0
+          Endpoint = {{ serverip.stdout }}:51820
+          PersistentKeepalive = 21
 
     - name: Restart wireguard (wg0.conf)
       shell: |
         wg-quick down wg0
         wg-quick up wg0
----
-#Client config file:
-# [Interface]
-# PrivateKey = 4CeXPt1sccFYH/YhAND0aotH1/sue4xgpRE9EzhcU0M=
-
-# [Peer]
-# PublicKey = 9t7RTnpmyL+6yek5hvQSOGVPfDB1r8W8KTq9GxFNzwQ=
-# AllowedIPs = 0.0.0.0/0
-# Endpoint = 192.168.2.14:51820 (server ip)
-# PersistentKeepalive = 21
-

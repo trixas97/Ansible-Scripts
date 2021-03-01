@@ -30,8 +30,6 @@
       pip:
         name: netaddr
 
-
-
 - name: Initialize Wireguard (Ip Pool)
   hosts: localhost
   become: true
@@ -64,7 +62,6 @@
         path: /etc/wireguard/pool
         regexp: "{{ ip_addr }}"
         replace: "#{{ ip_addr }} Server Ip"
-
 
 - name: Initialize Wireguard
   hosts: localhost
@@ -102,9 +99,6 @@
       file:
         path: /etc/wireguard/peers/keys
         state: directory
-#      shell: |
-#        mkdir /etc/wireguard/peers
-#        mkdir /etc/wireguard/peers/keys
 
     - name: Create wg0.conf
       file:
@@ -131,4 +125,3 @@
     - name: Print Wireguard (wg0.conf) status
       debug:
         msg: "{{ wg.stdout }}"
-...
