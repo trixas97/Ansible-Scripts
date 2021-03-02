@@ -56,7 +56,7 @@
         port: 587
         secure: starttls
         username: testansiblemail@gmail.com
-        password: gdghiqjsvxtkdyzb
+        password: *********
         to: Mike Trih <trixasmixas@gmail.com>
         subject: "Αλλαγή Κωδικού WIFI (WPA2)"
         body: "Ο νέος σας κωδικός για πρόσβαση στο wifi είναι {{ hostvars['localhost']['mypass']['stdout'] }}
