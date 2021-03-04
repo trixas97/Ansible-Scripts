@@ -126,3 +126,5 @@
     - name: Print Wireguard (wg0.conf) status
       debug:
         msg: "{{ wg.stdout }}"
+
+...
