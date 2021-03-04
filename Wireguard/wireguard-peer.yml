@@ -1,4 +1,4 @@
- #Call with ansible-playbook -e "user={peer username (i.e. mixalis)} interface={interface for vpn(i.e. eth0)}" wireguard-peer.yml
+ #Call with ansible-playbook -e "user={peer username (i.e. mixalis)}" wireguard-peer.yml
 ---
 - name: Add Peer
   hosts: localhost
