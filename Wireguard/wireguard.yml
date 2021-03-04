@@ -61,7 +61,7 @@
       replace:
         path: /etc/wireguard/pool
         regexp: "{{ ip_addr }}"
-        replace: "#{{ ip_addr }} Server Ip"
+        replace: "# {{ ip_addr }} Server Ip"
 
 - name: Initialize Wireguard
   hosts: localhost

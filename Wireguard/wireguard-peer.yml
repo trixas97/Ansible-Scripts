@@ -28,7 +28,7 @@
       replace:
         path: /etc/wireguard/pool
         regexp: "{{ ipaddress.stdout }}"
-        replace: "#{{ ipaddress.stdout }} {{ user }}"
+        replace: "# {{ ipaddress.stdout }} {{ user }}"
 
     - name: Adding peer to wg0.conf
       lineinfile:

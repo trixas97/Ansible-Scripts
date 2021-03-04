@@ -1,0 +1,69 @@
+---
+- name: Remove {{ user }} from server configuration
+  hosts: localhost
+  become: true
+  connection: local
+  tasks:
+    - name: Find {{ user }} in server configuration (1)
+      shell: cat /etc/wireguard/wg0.conf | grep -A 3 "#{{ user }}" | tail -1 
+      register: ipaddress
+
+    - name: Find {{ user }} in server configuration (2)
+      shell: cat /etc/wireguard/wg0.conf | grep -A 2 "#{{ user }}" | tail -1
+      register: publickey
+
+    - name: Remove {{ user }} from server configuration
+      replace:
+        path: /etc/wireguard/wg0.conf
+        regexp: |
+          #{{ user }}
+          \[Peer\]
+          {{ publickey.stdout | regex_escape() }}
+          {{ ipaddress.stdout }}
+        replace: ""
+
+
+
+- name: Remove {{ user }} from pool
+  hosts: localhost
+  become: true
+  connection: local
+  tasks:
+    - name: Find {{ user }} in pool file
+      shell: cat /etc/wireguard/pool | grep "{{ user }}" | cut -d " " -f2
+      register: ipaddress
+
+    - name: Remove {{ user }} from pool file
+      replace:
+        path: /etc/wireguard/pool
+        regexp: "# {{ ipaddress.stdout }} {{ user }}"
+        replace: "{{ ipaddress.stdout }}"
+
+
+
+- name: Remove {{ user }} keys and condifiguration file
+  hosts: localhost
+  become: true
+  connection: local
+  tasks:
+    - name: Remove {{ user }} Public Key
+      file:
+        path: /etc/wireguard/peers/keys/{{ user }}-publickey
+        state: absent
+
+    - name: Remove {{ user }} Private Key
+      file:
+        path: /etc/wireguard/peers/keys/{{ user }}-privatekey
+        state: absent
+
+    - name: Remove {{ user }} Configuration File
+      file:
+        path: /etc/wireguard/peers/{{ user }}.conf
+        state: absent
+
+    - name: Restart wireguard (wg0.conf)
+      shell: |
+        wg-quick down wg0
+        wg-quick up wg0
+
+...
