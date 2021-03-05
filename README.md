@@ -9,7 +9,7 @@ sudo ansible-playbook -e "ip_addr={VPN ip address for this device(i.e. 10.10.10.
 sudo ansible-playbook -e "ip_addr=10.10.10.1/24 interface=eth0" wireguard.yml
 ```
 <br />
-
+<br />
 
 ### Wireguard - wireguard-peer.yml (Add peer)
 ```
