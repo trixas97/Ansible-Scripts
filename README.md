@@ -19,7 +19,7 @@ sudo ansible-playbook -e "user={peer username (i.e. mixalis)}" wireguard-peer.ym
 ```
 sudo ansible-playbook -e "user=trixas97" wireguard-peer.yml
 ```
-
+<br />
 
 ### Wireguard - wireguard-peer-revoke.yml (Revoke peer)
 ```
@@ -29,7 +29,7 @@ sudo ansible-playbook -e "user={peer username (i.e. mixalis)} revoke={yes or no}
 ```
 sudo ansible-playbook -e "user=trixas97 revoke=yes" wireguard-peer-revoke.yml
 ```
-
+<br />
 
 ### Wireguard - wireguard-peer-remove.yml (Remove peer)
 ```
