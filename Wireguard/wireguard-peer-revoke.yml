@@ -1,0 +1,74 @@
+---
+- name: Revoke {{ user }}
+  hosts: localhost
+  become: true
+  connection: local
+  tasks:
+    - name: Find {{ user }} in server configuration (1)
+      shell: cat /etc/wireguard/wg0.conf | grep -A 3 "#{{ user }}" | tail -1
+      register: ipaddress
+      when: revoke == "yes"
+
+    - name: Find {{ user }} in server configuration (2)
+      shell: cat /etc/wireguard/wg0.conf | grep -A 2 "#{{ user }}" | tail -1
+      register: publickey
+      when: revoke == "yes"
+
+    - name: Revoke {{ user }}
+      replace:
+        path: /etc/wireguard/wg0.conf
+        regexp: |
+          #{{ user }}
+          \[Peer\]
+          {{ publickey.stdout | regex_escape() }}
+          {{ ipaddress.stdout }}
+        replace: |
+          #{{ user }}
+          #[Peer]
+          #{{ publickey.stdout }}
+          #{{ ipaddress.stdout }}
+      when: revoke == "yes"
+
+
+- name: Unrevoke {{ user }}
+  hosts: localhost
+  become: true
+  connection: local
+  tasks:
+    - name: Find {{ user }} in server configuration (1)
+      shell: cat /etc/wireguard/wg0.conf | grep -A 3 "#{{ user }}" | tail -1 | cut -d "#" -f2 
+      register: ipaddress
+      when: revoke == "no"
+
+    - name: Find {{ user }} in server configuration (2)
+      shell: cat /etc/wireguard/wg0.conf | grep -A 2 "#{{ user }}" | tail -1 | cut -d "#" -f2
+      register: publickey
+      when: revoke == "no"
+
+    - name: Unrevoke {{ user }}
+      replace:
+        path: /etc/wireguard/wg0.conf
+        regexp: |
+          #{{ user }}
+          #\[Peer\]
+          #{{ publickey.stdout | regex_escape() }}
+          #{{ ipaddress.stdout }}
+        replace: |
+          #{{ user }}
+          [Peer]
+          {{ publickey.stdout }}
+          {{ ipaddress.stdout }}
+      when: revoke == "no"
+
+
+- name: Restart Wireguard (wg0.conf)
+  hosts: localhost
+  become: true
+  connection: local
+  tasks:
+    - name: Restart wireguard (wg0.conf)
+      shell: |
+        wg-quick down wg0
+        wg-quick up wg0
+
+...

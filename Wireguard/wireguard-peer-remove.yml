@@ -5,11 +5,11 @@
   connection: local
   tasks:
     - name: Find {{ user }} in server configuration (1)
-      shell: cat /etc/wireguard/wg0.conf | grep -A 3 "#{{ user }}" | tail -1 
+      shell: cat /etc/wireguard/wg0.conf | grep -A 3 "#{{ user }}" | tail -1 | cut -d "#" -f2
       register: ipaddress
 
     - name: Find {{ user }} in server configuration (2)
-      shell: cat /etc/wireguard/wg0.conf | grep -A 2 "#{{ user }}" | tail -1
+      shell: cat /etc/wireguard/wg0.conf | grep -A 2 "#{{ user }}" | tail -1 | cut -d "#" -f2
       register: publickey
 
     - name: Remove {{ user }} from server configuration
@@ -20,6 +20,16 @@
           \[Peer\]
           {{ publickey.stdout | regex_escape() }}
           {{ ipaddress.stdout }}
+        replace: ""
+
+    - name: Remove {{ user }} from server configuration (revoked user)
+      replace:
+        path: /etc/wireguard/wg0.conf
+        regexp: |
+          #{{ user }}
+          #\[Peer\]
+          #{{ publickey.stdout | regex_escape() }}
+          #{{ ipaddress.stdout }}
         replace: ""
 
 
