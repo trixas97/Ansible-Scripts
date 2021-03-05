@@ -1,3 +1,4 @@
+# Call with ansible-playbook -e "user={peer username (i.e. mixalis)}" wireguard-peer-remove.yml
 ---
 - name: Remove {{ user }} from server configuration
   hosts: localhost
